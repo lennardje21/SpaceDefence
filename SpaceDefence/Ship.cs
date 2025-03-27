@@ -79,20 +79,38 @@ namespace SpaceDefence
             }
         }
 
+        private bool isDead = false; // **Track if the player is dead**
+
+        public void Kill()
+        {
+            if (!isDead) // Prevent multiple deaths
+            {
+                isDead = true;
+                velocity = Vector2.Zero; // **Stop movement**
+                acceleration = Vector2.Zero;
+                Console.WriteLine("Player has been destroyed. Disabling input and movement.");
+            }
+        }
+        public bool IsDead() { return isDead; }
+
         public override void Update(GameTime gameTime)
         {
+            if (isDead) return; // **Prevent movement & input if dead**
+
+            float deltaTime = (float)gameTime.ElapsedGameTime.TotalSeconds;
+
             // Update Buff Timer
             if (buffTimer > 0)
-                buffTimer -= (float)gameTime.ElapsedGameTime.TotalSeconds;
+                buffTimer -= deltaTime;
 
             // Apply acceleration to velocity
-            velocity += acceleration * (float)gameTime.ElapsedGameTime.TotalSeconds;
+            velocity += acceleration * deltaTime;
 
             // Apply friction to simulate inertia in space
             velocity *= friction;
 
             // Rotate the ship in the direction of velocity (only if moving)
-            if (velocity.LengthSquared() > 0.01f) // Prevent rotation flickering at very low speeds
+            if (velocity.LengthSquared() > 0.01f)
             {
                 rotationAngle = (float)Math.Atan2(velocity.X, -velocity.Y);
             }
@@ -106,6 +124,7 @@ namespace SpaceDefence
 
             base.Update(gameTime);
         }
+
 
         private void WrapScreen()
         {

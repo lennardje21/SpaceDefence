@@ -1,11 +1,23 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Input;
+using SpaceDefence.Engine;
 
 namespace SpaceDefence
 {
+    public enum GameState
+    {
+        StartScreen,
+        Playing,
+        Paused,
+        ExplosionPlaying,
+        GameOver
+    }
+
     public class GameManager
     {
         private static GameManager gameManager;
@@ -16,16 +28,24 @@ namespace SpaceDefence
         private ContentManager _content;
 
         private GameOverScreen _gameOverScreen;
-        private bool isGameOver = false;
+        private StartScreen _startScreen;
+        private PauseScreen _pauseScreen;
 
         public Random RNG { get; private set; }
         public Ship Player { get; private set; }
         public InputManager InputManager { get; private set; }
         public Game Game { get; private set; }
+        private GameState currentState = GameState.StartScreen;
+
 
         public void SetPlayer(Ship player)
         {
             Player = player;
+        }
+
+        public void SetGameState(GameState newState)
+        {
+            currentState = newState;
         }
 
         public static GameManager GetGameManager()
@@ -51,6 +71,10 @@ namespace SpaceDefence
 
             _gameOverScreen = new GameOverScreen(Game.GraphicsDevice);
             _gameOverScreen.Load(content);
+            _startScreen = new StartScreen(Game.GraphicsDevice);
+            _startScreen.Load(content);
+            _pauseScreen = new PauseScreen(Game.GraphicsDevice);
+            _pauseScreen.Load(content);
         }
 
         public void Load(ContentManager content)
@@ -63,11 +87,24 @@ namespace SpaceDefence
 
         public void HandleInput(InputManager inputManager)
         {
+            if (inputManager.IsKeyPress(Keys.P))
+            {
+                if (currentState == GameState.Playing)
+                    SetGameState(GameState.Paused);
+                else if (currentState == GameState.Paused)
+                    SetGameState(GameState.Playing);
+            }
+            // **Disable player input when dead**
+            if (currentState != GameState.Playing)
+            {
+                return; // Prevents movement, shooting, or any input
+            }
             foreach (GameObject gameObject in _gameObjects)
             {
                 gameObject.HandleInput(this.InputManager);
             }
         }
+
 
         public void CheckCollision()
         {
@@ -87,52 +124,80 @@ namespace SpaceDefence
 
         public void Update(GameTime gameTime)
         {
-            InputManager.Update();
+            InputManager.Update(); // Ensure input updates first
 
-            if (isGameOver)
+            switch (currentState)
             {
-                _gameOverScreen.Update();
-                return;
+                case GameState.StartScreen:
+                    _startScreen.Update();
+                    break;
+                case GameState.Playing:
+                    HandleInput(InputManager);
+
+                    foreach (GameObject gameObject in _gameObjects)
+                    {
+                        // Prevent the player from moving if they are dead
+                        if (gameObject is Ship playerShip && playerShip.IsDead())
+                            continue;
+
+                        gameObject.Update(gameTime);
+                    }
+
+                    CheckCollision();
+
+                    foreach (GameObject gameObject in _toBeAdded)
+                    {
+                        gameObject.Load(_content);
+                        _gameObjects.Add(gameObject);
+                    }
+                    _toBeAdded.Clear();
+
+                    foreach (GameObject gameObject in _toBeRemoved)
+                    {
+                        gameObject.Destroy();
+                        _gameObjects.Remove(gameObject);
+                    }
+                    _toBeRemoved.Clear();
+                    break;
+                case GameState.Paused:
+                    _pauseScreen.Update(); // Ensure pause menu responds to input
+                    break;
+                case GameState.GameOver:
+                    _gameOverScreen.Update(); // Ensure game over screen responds to input
+                    break;
             }
-
-            HandleInput(InputManager);
-
-            foreach (GameObject gameObject in _gameObjects)
-            {
-                gameObject.Update(gameTime);
-            }
-
-            CheckCollision();
-
-            foreach (GameObject gameObject in _toBeAdded)
-            {
-                gameObject.Load(_content);
-                _gameObjects.Add(gameObject);
-            }
-            _toBeAdded.Clear();
-
-            foreach (GameObject gameObject in _toBeRemoved)
-            {
-                gameObject.Destroy();
-                _gameObjects.Remove(gameObject);
-            }
-            _toBeRemoved.Clear();
         }
+
 
         public void Draw(GameTime gameTime, SpriteBatch spriteBatch)
         {
-            if (isGameOver)
-            {
-                _gameOverScreen.Draw(spriteBatch);
-                return;
-            }
+            spriteBatch.Begin(); // Ensure only one Begin() call
 
-            spriteBatch.Begin();
+            // Always draw the game world
             foreach (GameObject gameObject in _gameObjects)
             {
                 gameObject.Draw(gameTime, spriteBatch);
             }
-            spriteBatch.End();
+
+            // If paused, overlay the pause screen
+            if (currentState == GameState.Paused)
+            {
+                _pauseScreen.Draw(spriteBatch);
+            }
+
+            // If game over, overlay the game over screen
+            if (currentState == GameState.GameOver)
+            {
+                _gameOverScreen.Draw(spriteBatch);
+            }
+
+            // If at start screen, only draw the start screen
+            if (currentState == GameState.StartScreen)
+            {
+                _startScreen.Draw(spriteBatch);
+            }
+
+            spriteBatch.End(); // Ensure End() is always called
         }
 
         /// <summary>
@@ -157,10 +222,29 @@ namespace SpaceDefence
             _toBeRemoved.Add(gameObject);
         }
 
+        private bool playerExplosionTriggered = false;
+
         public void GameOver()
         {
-            Console.WriteLine("Game Over! Switching to Game Over Screen.");
-            isGameOver = true;
+            if (!playerExplosionTriggered)
+            {
+                playerExplosionTriggered = true;
+                Console.WriteLine("Player destroyed! Triggering explosion...");
+
+                // Stop player movement and input
+                Player.Kill();
+
+                // Create explosion at player's position
+                Vector2 playerPosition = Player.GetPosition().Center.ToVector2();
+                AddGameObject(new Explosion(playerPosition, 4f));
+
+                // Delay switching to the Game Over screen so explosion plays first
+                Task.Delay(1000).ContinueWith(t =>
+                {
+                    SetGameState(GameState.GameOver);
+                    playerExplosionTriggered = false; // Reset flag for next game
+                });
+            }
         }
 
         public void Restart()
@@ -181,9 +265,8 @@ namespace SpaceDefence
 
             AddGameObject(new Supply());
 
-            isGameOver = false;
+            currentState = GameState.Playing;
         }
-
 
 
         /// <summary>

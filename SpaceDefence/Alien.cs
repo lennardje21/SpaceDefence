@@ -31,12 +31,20 @@ internal class Alien : GameObject
     {
         if (other is Bullet || other is Laser)
         {
-            // Increase speed for the next alien and spawn a new one
-            float newSpeed = speed + 10f; // Increase speed by 10
+            Console.WriteLine("Alien hit! Triggering explosion...");
+
+            // Get alien's position for explosion
+            Vector2 explosionPosition = _circleCollider.Center;
+
+            // Add explosion effect
+            GameManager.GetGameManager().AddGameObject(new Explosion(explosionPosition, 2f)); // Slightly smaller than player's explosion
+
+            // Remove alien and spawn a faster one
+            float newSpeed = speed + 10f;
             GameManager.GetGameManager().RemoveGameObject(this);
-            GameManager.GetGameManager().AddGameObject(new Alien(player, newSpeed));
-        }
-        else if (other is Ship)
+            GameManager.GetGameManager().AddGameObject(new Alien(GameManager.GetGameManager().Player, newSpeed));
+
+        } else if (other is Ship)
         {
             Console.WriteLine("Alien hit the player! Game Over."); // Debugging output
             GameManager.GetGameManager().GameOver();
