@@ -30,12 +30,19 @@ namespace SpaceDefence
         private GameOverScreen _gameOverScreen;
         private StartScreen _startScreen;
         private PauseScreen _pauseScreen;
+        private Camera _camera;
+
+        public static int _gameFieldWidth = 4000;
+        public static int _gameFieldHeight = 4000;
+
 
         public Random RNG { get; private set; }
         public Ship Player { get; private set; }
         public InputManager InputManager { get; private set; }
         public Game Game { get; private set; }
         private GameState currentState = GameState.StartScreen;
+        public static Rectangle LevelBounds = new Rectangle(0, 0, _gameFieldWidth, _gameFieldHeight);
+
 
 
         public void SetPlayer(Ship player)
@@ -75,6 +82,7 @@ namespace SpaceDefence
             _startScreen.Load(content);
             _pauseScreen = new PauseScreen(Game.GraphicsDevice);
             _pauseScreen.Load(content);
+            _camera = new Camera(Game.GraphicsDevice.Viewport);
         }
 
         public void Load(ContentManager content)
@@ -171,34 +179,37 @@ namespace SpaceDefence
 
         public void Draw(GameTime gameTime, SpriteBatch spriteBatch)
         {
-            spriteBatch.Begin(); // Ensure only one Begin() call
+            _camera.Follow(Player.GetPosition().Center.ToVector2());
 
-            // Always draw the game world
+            spriteBatch.Begin(transformMatrix: _camera.GetTransform());
+
             foreach (GameObject gameObject in _gameObjects)
             {
                 gameObject.Draw(gameTime, spriteBatch);
             }
 
-            // If paused, overlay the pause screen
+            spriteBatch.End(); // End world draw
+
+            spriteBatch.Begin();
+
             if (currentState == GameState.Paused)
             {
                 _pauseScreen.Draw(spriteBatch);
             }
 
-            // If game over, overlay the game over screen
             if (currentState == GameState.GameOver)
             {
                 _gameOverScreen.Draw(spriteBatch);
             }
 
-            // If at start screen, only draw the start screen
             if (currentState == GameState.StartScreen)
             {
                 _startScreen.Draw(spriteBatch);
             }
 
-            spriteBatch.End(); // Ensure End() is always called
+            spriteBatch.End(); // End UI draw
         }
+
 
         /// <summary>
         /// Add a new GameObject to the GameManager. 

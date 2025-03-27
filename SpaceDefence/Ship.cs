@@ -22,8 +22,8 @@ namespace SpaceDefence
         private float speed = 10f; // Base acceleration speed
         private float friction = 0.98f; // Simulated space friction to gradually slow down movement
         private float rotationAngle = 0f; // Stores the ship's rotation angle
-        private int screenWidth = SpaceDefence.screenWidth; // Adjust as needed
-        private int screenHeight = SpaceDefence.screenHeight; // Adjust as needed
+        private int screenWidth = GameManager._gameFieldWidth; // Adjust as needed
+        private int screenHeight = GameManager._gameFieldHeight; // Adjust as needed
 
         /// <summary>
         /// The player character
@@ -124,7 +124,6 @@ namespace SpaceDefence
 
             base.Update(gameTime);
         }
-
 
         private void WrapScreen()
         {
