@@ -20,11 +20,17 @@ namespace SpaceDefence
         {
             base.Load(content);
             _texture = content.Load<Texture2D>("Crate");
-            _rectangleCollider = new RectangleCollider(_texture.Bounds);
 
+            Vector2 center = GameManager.GetGameManager().RandomScreenLocation();
+            float width = _texture.Width;
+            float height = _texture.Height;
+
+            _rectangleCollider = new RectangleCollider(center, width, height);
             SetCollider(_rectangleCollider);
-            RandomMove();
+
+            RandomMove(); // optional movement or repositioning
         }
+
 
         public override void OnCollision(GameObject other)
         {

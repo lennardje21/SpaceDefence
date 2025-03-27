@@ -69,7 +69,6 @@ namespace SpaceDefence
             return distanceSquared < (radiusSum * radiusSum);
         }
 
-
         /// <summary>
         /// Gets whether or not the Circle intersects the Rectangle.
         /// </summary>

@@ -32,8 +32,26 @@ namespace SpaceDefence
         private PauseScreen _pauseScreen;
         private Camera _camera;
 
+        // size of the playingfield
         public static int _gameFieldWidth = 4000;
         public static int _gameFieldHeight = 4000;
+
+        // alien spawn settings
+        private float enemySpawnTimer = 0f;
+        private float spawnInterval = 5f; // Seconds
+        private float spawnSpeed = 50f;
+        private int maxAliens = 10;
+
+        // asteroid spawn settings
+        private float asteroidSpawnTimer = 0f;
+        private float nextAsteroidSpawnTime = 10f; // will be randomized
+        private Random rng = new Random();
+
+        // background settings
+        private Texture2D starsTexture;
+        private Texture2D galaxyTexture;
+        private Vector2 galaxyPosition;
+        private const int backgroundTileSize = 768; // Match the stars texture resolution
 
 
         public Random RNG { get; private set; }
@@ -43,7 +61,10 @@ namespace SpaceDefence
         private GameState currentState = GameState.StartScreen;
         public static Rectangle LevelBounds = new Rectangle(0, 0, _gameFieldWidth, _gameFieldHeight);
 
-
+        public Camera GetCamera()
+        {
+            return _camera;
+        }
 
         public void SetPlayer(Ship player)
         {
@@ -83,15 +104,40 @@ namespace SpaceDefence
             _pauseScreen = new PauseScreen(Game.GraphicsDevice);
             _pauseScreen.Load(content);
             _camera = new Camera(Game.GraphicsDevice.Viewport);
+
+            // Add a few static asteroids on startup
+            for (int i = 0; i < 5; i++)
+            {
+                Vector2 candidate;
+                do
+                {
+                    candidate = RandomScreenLocation();
+                }
+                while (Vector2.Distance(candidate, Player.GetPosition().Center.ToVector2()) < 200); // min distance
+
+                AddGameObject(new Asteroid(candidate));
+            }
         }
 
         public void Load(ContentManager content)
         {
+            // Load background textures
+            starsTexture = content.Load<Texture2D>("stars_texture");
+            galaxyTexture = content.Load<Texture2D>("galaxy");
+
+            // Place the galaxy somewhere in the world
+            galaxyPosition = new Vector2(
+                RNG.Next(LevelBounds.Left, LevelBounds.Right - galaxyTexture.Width),
+                RNG.Next(LevelBounds.Top, LevelBounds.Bottom - galaxyTexture.Height)
+            );
+
+            // Load all game objects
             foreach (GameObject gameObject in _gameObjects)
             {
                 gameObject.Load(content);
             }
         }
+
 
         public void HandleInput(InputManager inputManager)
         {
@@ -112,7 +158,6 @@ namespace SpaceDefence
                 gameObject.HandleInput(this.InputManager);
             }
         }
-
 
         public void CheckCollision()
         {
@@ -151,6 +196,36 @@ namespace SpaceDefence
                         gameObject.Update(gameTime);
                     }
 
+                    enemySpawnTimer += (float)gameTime.ElapsedGameTime.TotalSeconds;
+
+                    if (enemySpawnTimer >= spawnInterval)
+                    {
+                        enemySpawnTimer = 0f;
+
+                        // Count how many aliens are alive
+                        int currentAliens = _gameObjects.FindAll(g => g is Alien).Count;
+                        if (currentAliens < maxAliens)
+                        {
+                            // Spawn a new alien near the edge
+                            Vector2 spawnPos = RandomScreenLocation();
+                            AddGameObject(new Alien(Player, spawnSpeed));
+                            spawnSpeed += 5f; // Optional: increase speed with time
+                        }
+                    }
+
+                    asteroidSpawnTimer += (float)gameTime.ElapsedGameTime.TotalSeconds;
+
+                    if (asteroidSpawnTimer >= nextAsteroidSpawnTime)
+                    {
+                        asteroidSpawnTimer = 0f;
+
+                        // Spawn a new asteroid
+                        AddGameObject(new Asteroid(RandomScreenLocation()));
+
+                        // Set the next random interval between 8 and 20 seconds
+                        nextAsteroidSpawnTime = rng.Next(8, 21);
+                    }
+
                     CheckCollision();
 
                     foreach (GameObject gameObject in _toBeAdded)
@@ -182,6 +257,18 @@ namespace SpaceDefence
             _camera.Follow(Player.GetPosition().Center.ToVector2());
 
             spriteBatch.Begin(transformMatrix: _camera.GetTransform());
+
+            // 1. Tile the stars texture across the entire level
+            for (int x = 0; x < LevelBounds.Width; x += backgroundTileSize)
+            {
+                for (int y = 0; y < LevelBounds.Height; y += backgroundTileSize)
+                {
+                    spriteBatch.Draw(starsTexture, new Vector2(x, y), Color.White);
+                }
+            }
+
+            // 2. Draw the galaxy once at its position
+            spriteBatch.Draw(galaxyTexture, galaxyPosition, Color.White);
 
             foreach (GameObject gameObject in _gameObjects)
             {
@@ -268,7 +355,7 @@ namespace SpaceDefence
             _toBeRemoved.Clear();
 
             // Reinitialize player
-            Player = new Ship(new Point(Game.GraphicsDevice.Viewport.Width / 2, Game.GraphicsDevice.Viewport.Height / 2));
+            Player = new Ship(new Point(_gameFieldWidth / 2, _gameFieldHeight / 2));
             AddGameObject(Player);
 
             // Spawn an initial alien
@@ -286,8 +373,8 @@ namespace SpaceDefence
         public Vector2 RandomScreenLocation()
         {
             return new Vector2(
-                RNG.Next(0, Game.GraphicsDevice.Viewport.Width),
-                RNG.Next(0, Game.GraphicsDevice.Viewport.Height));
+                RNG.Next(0, _gameFieldWidth),
+                RNG.Next(0, _gameFieldHeight));
         }
 
     }

@@ -29,9 +29,8 @@ namespace SpaceDefence
         {
             base.Update(gameTime);
             _circleCollider.Center += _velocity * (float)gameTime.ElapsedGameTime.TotalSeconds;
-            if (!GameManager.GetGameManager().Game.GraphicsDevice.Viewport.Bounds.Contains(_circleCollider.Center))
-                 GameManager.GetGameManager().RemoveGameObject(this);
-
+            if (!GameManager.LevelBounds.Contains(_circleCollider.Center.ToPoint()))
+                GameManager.GetGameManager().RemoveGameObject(this);
         }
 
         public override void OnCollision(GameObject other)

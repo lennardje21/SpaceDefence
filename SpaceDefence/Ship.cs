@@ -14,7 +14,7 @@ namespace SpaceDefence
         private Texture2D laser_turret;
         private float buffTimer = 10;
         private float buffDuration = 10f;
-        private RotatableRectangleCollider _collider; // Rotatable collider for ship
+        private RectangleCollider _collider; // Rotatable collider for ship
         private Point target;
 
         private Vector2 velocity = Vector2.Zero; // Current movement velocity
@@ -31,7 +31,7 @@ namespace SpaceDefence
         /// <param name="Position">The ship's starting position</param>
         public Ship(Point Position)
         {
-            _collider = new RotatableRectangleCollider(Position.ToVector2(), 50f, 120f); // Adjust size as needed
+            _collider = new RectangleCollider(Position.ToVector2(), 50f, 120f); // Adjust size as needed
             SetCollider(_collider);
             GameManager.GetGameManager().SetPlayer(this); // Set the player reference
         }
@@ -47,7 +47,10 @@ namespace SpaceDefence
         public override void HandleInput(InputManager inputManager)
         {
             base.HandleInput(inputManager);
-            target = inputManager.CurrentMouseState.Position;
+
+            // Convert screen mouse position to world position
+            Vector2 screenMouse = inputManager.CurrentMouseState.Position.ToVector2();
+            target = GameManager.GetGameManager().GetCamera().ScreenToWorld(screenMouse).ToPoint();
 
             // Reset acceleration each frame
             acceleration = Vector2.Zero;
@@ -78,6 +81,7 @@ namespace SpaceDefence
                 }
             }
         }
+
 
         private bool isDead = false; // **Track if the player is dead**
 
@@ -127,10 +131,14 @@ namespace SpaceDefence
 
         private void WrapScreen()
         {
-            if (_collider.Center.X < 0) _collider.Center.X = screenWidth;
-            if (_collider.Center.X > screenWidth) _collider.Center.X = 0;
-            if (_collider.Center.Y < 0) _collider.Center.Y = screenHeight;
-            if (_collider.Center.Y > screenHeight) _collider.Center.Y = 0;
+            Vector2 center = _collider.Center;
+
+            if (center.X < 0) center.X = screenWidth;
+            if (center.X > screenWidth) center.X = 0;
+            if (center.Y < 0) center.Y = screenHeight;
+            if (center.Y > screenHeight) center.Y = 0;
+
+            _collider.Center = center;
         }
 
         public override void Draw(GameTime gameTime, SpriteBatch spriteBatch)
@@ -163,22 +171,22 @@ namespace SpaceDefence
             }
 
             // Draw debug collider border
-            //DrawRotatableCollider(spriteBatch, _collider);
+            DrawRotatableCollider(spriteBatch, _collider);
 
             base.Draw(gameTime, spriteBatch);
         }
 
-        private void DrawRotatableCollider(SpriteBatch spriteBatch, RotatableRectangleCollider collider)
+        private void DrawRotatableCollider(SpriteBatch spriteBatch, RectangleCollider collider)
         {
             Texture2D pixel = new Texture2D(spriteBatch.GraphicsDevice, 1, 1);
             pixel.SetData(new[] { Color.Red });
 
             Vector2[] corners = collider.GetRotatedCorners();
 
-            DrawLine(spriteBatch, pixel, corners[0], corners[1]); // Top
-            DrawLine(spriteBatch, pixel, corners[1], corners[3]); // Right
-            DrawLine(spriteBatch, pixel, corners[3], corners[2]); // Bottom
-            DrawLine(spriteBatch, pixel, corners[2], corners[0]); // Left
+            DrawLine(spriteBatch, pixel, corners[0], corners[1]);
+            DrawLine(spriteBatch, pixel, corners[1], corners[2]);
+            DrawLine(spriteBatch, pixel, corners[2], corners[3]);
+            DrawLine(spriteBatch, pixel, corners[3], corners[0]);
         }
 
         private void DrawLine(SpriteBatch spriteBatch, Texture2D texture, Vector2 start, Vector2 end)

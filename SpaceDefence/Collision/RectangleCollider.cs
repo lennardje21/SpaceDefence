@@ -8,10 +8,22 @@ namespace SpaceDefence.Collision
     {
         public Rectangle shape;
         public float Rotation { get; set; } = 0f; // Rotation in radians
-
-        public RectangleCollider(Rectangle shape)
+        public Vector2 Center
         {
-            this.shape = shape;
+            get => shape.Center.ToVector2();
+            set => shape = new Rectangle(
+                (int)(value.X - shape.Width / 2),
+                (int)(value.Y - shape.Height / 2),
+                shape.Width,
+                shape.Height);
+        }
+
+
+        public RectangleCollider(Vector2 center, float width, float height)
+        {
+            int x = (int)(center.X - width / 2);
+            int y = (int)(center.Y - height / 2);
+            shape = new Rectangle(x, y, (int)width, (int)height);
         }
 
         public override bool Contains(Vector2 loc)
@@ -27,17 +39,25 @@ namespace SpaceDefence.Collision
 
         public override Rectangle GetBoundingBox()
         {
-            return shape;
+            Vector2[] corners = GetRotatedCorners();
+
+            float minX = MathF.Min(MathF.Min(corners[0].X, corners[1].X), MathF.Min(corners[2].X, corners[3].X));
+            float minY = MathF.Min(MathF.Min(corners[0].Y, corners[1].Y), MathF.Min(corners[2].Y, corners[3].Y));
+            float maxX = MathF.Max(MathF.Max(corners[0].X, corners[1].X), MathF.Max(corners[2].X, corners[3].X));
+            float maxY = MathF.Max(MathF.Max(corners[0].Y, corners[1].Y), MathF.Max(corners[2].Y, corners[3].Y));
+
+            return new Rectangle((int)minX, (int)minY, (int)(maxX - minX), (int)(maxY - minY));
         }
 
         public override bool Intersects(CircleCollider other)
         {
-            return other.Intersects(this);
+            Vector2 closestPoint = GetClosestPointOnRotatedRect(other.Center);
+            return (closestPoint - other.Center).LengthSquared() < other.Radius * other.Radius;
         }
 
         public override bool Intersects(RectangleCollider other)
         {
-            return shape.Intersects(other.shape);
+            return GetBoundingBox().Intersects(other.GetBoundingBox());
         }
 
         public override bool Intersects(LinePieceCollider other)
@@ -48,7 +68,7 @@ namespace SpaceDefence.Collision
         // ✅ New Helper Functions for Rotation Handling
 
         /// <summary>
-        /// Returns the four corners of the rotated rectangle
+        /// Returns the four corners of the rotated rectangle.
         /// </summary>
         public Vector2[] GetRotatedCorners()
         {
@@ -66,6 +86,9 @@ namespace SpaceDefence.Collision
             return corners;
         }
 
+        /// <summary>
+        /// Rotates a point around a given origin.
+        /// </summary>
         private Vector2 RotatePoint(Vector2 point, float angle, Vector2 origin)
         {
             float cos = (float)Math.Cos(angle);
@@ -77,7 +100,22 @@ namespace SpaceDefence.Collision
         }
 
         /// <summary>
-        /// Draws the collider for debugging purposes
+        /// Gets the closest point on the rotated rectangle to a target point.
+        /// </summary>
+        private Vector2 GetClosestPointOnRotatedRect(Vector2 point)
+        {
+            Vector2 center = shape.Center.ToVector2();
+            Vector2 localPoint = RotatePoint(point, -Rotation, center);
+
+            float clampedX = Math.Clamp(localPoint.X, shape.Left, shape.Right);
+            float clampedY = Math.Clamp(localPoint.Y, shape.Top, shape.Bottom);
+
+            Vector2 clamped = new Vector2(clampedX, clampedY);
+            return RotatePoint(clamped, Rotation, center);
+        }
+
+        /// <summary>
+        /// Draws the collider for debugging purposes.
         /// </summary>
         public void Draw(SpriteBatch spriteBatch, Texture2D texture)
         {
@@ -85,7 +123,7 @@ namespace SpaceDefence.Collision
             for (int i = 0; i < 4; i++)
             {
                 int next = (i + 1) % 4;
-                DrawLine(spriteBatch, corners[i], corners[next], texture, Color.Green); // Green debug border
+                DrawLine(spriteBatch, corners[i], corners[next], texture, Color.Green);
             }
         }
 
