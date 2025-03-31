@@ -7,6 +7,7 @@ using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using SpaceDefence.Engine;
+using SpaceDefence.Screens;
 
 namespace SpaceDefence
 {
@@ -34,43 +35,39 @@ namespace SpaceDefence
         private Camera _camera;
 
         // size of the playingfield
-        public static int _gameFieldWidth = 4000;
-        public static int _gameFieldHeight = 4000;
-
-        // alien spawn settings
-        private float enemySpawnTimer = 0f;
-        private float spawnInterval = 5f; // Seconds
-        private float spawnSpeed = 50f;
-        private int maxAliens = 10;
-
-        // asteroid spawn settings
-        private float asteroidSpawnTimer = 0f;
-        private float nextAsteroidSpawnTime = 10f; // will be randomized
-        private Random rng = new Random();
+        public static int _gameFieldWidth = 6000;
+        public static int _gameFieldHeight = 6000;
 
         // background settings
-        private Texture2D starsTexture;
-        private Texture2D galaxyTexture;
-        private Vector2 galaxyPosition;
-        private const int backgroundTileSize = 768;
+        private Texture2D _starsTexture;
+        private Texture2D _galaxyTexture;
+        private Vector2 _galaxyPosition;
+        private const int _backgroundTileSize = 768;
+
+        // alien spawn settings
+        private float _enemySpawnTimer = 0f;
+        private float _spawnInterval = 10f; // Seconds
+        private float _spawnSpeed = 50f;
+        private int _maxAliens = 20;
+
+        // asteroid spawn settings
+        private float _asteroidSpawnTimer = 0f;
+        private float _nextAsteroidSpawnTime = 10f;
+        private Random rng = new();
 
         // score tracker
         private int score = 0;
         public int Score => score;
-
-        public void increaseScore(int points)
-        {
-            score += points;
-        }
+        private Texture2D hudArrow;
 
         public Random RNG { get; private set; }
         public Ship Player { get; private set; }
         public InputManager InputManager { get; private set; }
         public Game Game { get; private set; }
 
-        private GameState currentState = GameState.StartScreen;
+        private GameState _currentState = GameState.StartScreen;
 
-        public static Rectangle LevelBounds = new Rectangle(0, 0, _gameFieldWidth, _gameFieldHeight);
+        public static Rectangle _levelBounds = new Rectangle(0, 0, _gameFieldWidth, _gameFieldHeight);
 
         public Camera GetCamera()
         {
@@ -84,7 +81,12 @@ namespace SpaceDefence
 
         public void SetGameState(GameState newState)
         {
-            currentState = newState;
+            _currentState = newState;
+        }
+
+        public void increaseScore(int points)
+        {
+            score += points;
         }
 
         public static GameManager GetGameManager()
@@ -106,7 +108,7 @@ namespace SpaceDefence
         {
             Game = game;
             _content = content;
-            SetPlayer(player); // Use the method to set the player
+            SetPlayer(player);
 
             _gameOverScreen = new GameOverScreen(Game.GraphicsDevice);
             _gameOverScreen.Load(content);
@@ -116,7 +118,6 @@ namespace SpaceDefence
             _pauseScreen.Load(content);
             _camera = new Camera(Game.GraphicsDevice.Viewport);
 
-            // Add a few static asteroids on startup
             for (int i = 0; i < 5; i++)
             {
                 Vector2 location;
@@ -129,24 +130,22 @@ namespace SpaceDefence
                 AddGameObject(new Asteroid(location));
             }
 
-            AddGameObject(new Planet(new Vector2(300, RNG.Next(0, _gameFieldHeight)), "Earth", true));
-            AddGameObject(new Planet(new Vector2(3700, RNG.Next(0, _gameFieldHeight)), "Alien_planet", false));
+            AddGameObject(new Planet(new Vector2(500, RNG.Next(0, _gameFieldHeight)), "Earth", true));
+            AddGameObject(new Planet(new Vector2(_gameFieldWidth - 500, RNG.Next(0, _gameFieldHeight)), "Alien_planet", false));
 
         }
 
         public void Load(ContentManager content)
         {
             // Load background textures
-            starsTexture = content.Load<Texture2D>("stars_texture");
-            galaxyTexture = content.Load<Texture2D>("galaxy");
+            _starsTexture = content.Load<Texture2D>("stars_texture");
+            _galaxyTexture = content.Load<Texture2D>("galaxy");
 
-            // Place the galaxy somewhere in the world
-            galaxyPosition = new Vector2(
-                RNG.Next(LevelBounds.Left, LevelBounds.Right - galaxyTexture.Width),
-                RNG.Next(LevelBounds.Top, LevelBounds.Bottom - galaxyTexture.Height)
+            _galaxyPosition = new Vector2(
+                RNG.Next(_levelBounds.Left, _levelBounds.Right - _galaxyTexture.Width),
+                RNG.Next(_levelBounds.Top, _levelBounds.Bottom - _galaxyTexture.Height)
             );
 
-            // Load all game objects
             foreach (GameObject gameObject in _gameObjects)
             {
                 gameObject.Load(content);
@@ -158,15 +157,14 @@ namespace SpaceDefence
         {
             if (inputManager.IsKeyPress(Keys.P))
             {
-                if (currentState == GameState.Playing)
+                if (_currentState == GameState.Playing)
                     SetGameState(GameState.Paused);
-                else if (currentState == GameState.Paused)
+                else if (_currentState == GameState.Paused)
                     SetGameState(GameState.Playing);
             }
-            // **Disable player input when dead**
-            if (currentState != GameState.Playing)
+            if (_currentState != GameState.Playing)
             {
-                return; // Prevents movement, shooting, or any input
+                return;
             }
             foreach (GameObject gameObject in _gameObjects)
             {
@@ -176,7 +174,6 @@ namespace SpaceDefence
 
         public void CheckCollision()
         {
-            // Checks once for every pair of 2 GameObjects if they collide.
             for (int i = 0; i < _gameObjects.Count; i++)
             {
                 for (int j = i + 1; j < _gameObjects.Count; j++)
@@ -186,7 +183,6 @@ namespace SpaceDefence
 
                     if (a.CheckCollision(b))
                     {
-                        // 🚀 Planet Delivery Logic
                         if ((a is Ship && b is Planet) || (a is Planet && b is Ship))
                         {
                             Ship ship = a is Ship ? (Ship)a : (Ship)b;
@@ -205,7 +201,6 @@ namespace SpaceDefence
                             }
                         }
 
-                        // Default collision handling
                         a.OnCollision(b);
                         b.OnCollision(a);
                     }
@@ -215,9 +210,9 @@ namespace SpaceDefence
 
         public void Update(GameTime gameTime)
         {
-            InputManager.Update(); // Ensure input updates first
+            InputManager.Update();
 
-            switch (currentState)
+            switch (_currentState)
             {
                 case GameState.StartScreen:
                     _startScreen.Update();
@@ -227,41 +222,37 @@ namespace SpaceDefence
 
                     foreach (GameObject gameObject in _gameObjects)
                     {
-                        // Prevent the player from moving if they are dead
                         if (gameObject is Ship playerShip && playerShip.IsDead())
                             continue;
 
                         gameObject.Update(gameTime);
                     }
 
-                    enemySpawnTimer += (float)gameTime.ElapsedGameTime.TotalSeconds;
+                    _enemySpawnTimer += (float)gameTime.ElapsedGameTime.TotalSeconds;
 
-                    if (enemySpawnTimer >= spawnInterval)
+                    if (_enemySpawnTimer >= _spawnInterval)
                     {
-                        enemySpawnTimer = 0f;
+                        _enemySpawnTimer = 0f;
 
-                        // Count how many aliens are alive
                         int currentAliens = _gameObjects.FindAll(g => g is Alien).Count;
-                        if (currentAliens < maxAliens)
+                        if (currentAliens < _maxAliens)
                         {
-                            // Spawn a new alien near the edge
+                            
                             Vector2 spawnPos = RandomScreenLocation();
-                            AddGameObject(new Alien(Player, spawnSpeed));
-                            spawnSpeed += 5f; // Optional: increase speed with time
+                            AddGameObject(new Alien(Player, _spawnSpeed));
+                            _spawnSpeed += 5f;
                         }
                     }
 
-                    asteroidSpawnTimer += (float)gameTime.ElapsedGameTime.TotalSeconds;
+                    _asteroidSpawnTimer += (float)gameTime.ElapsedGameTime.TotalSeconds;
 
-                    if (asteroidSpawnTimer >= nextAsteroidSpawnTime)
+                    if (_asteroidSpawnTimer >= _nextAsteroidSpawnTime)
                     {
-                        asteroidSpawnTimer = 0f;
+                        _asteroidSpawnTimer = 0f;
 
-                        // Spawn a new asteroid
                         AddGameObject(new Asteroid(RandomScreenLocation()));
 
-                        // Set the next random interval between 8 and 20 seconds
-                        nextAsteroidSpawnTime = rng.Next(8, 21);
+                        _nextAsteroidSpawnTime = rng.Next(8, 21);
                     }
 
                     CheckCollision();
@@ -281,10 +272,10 @@ namespace SpaceDefence
                     _toBeRemoved.Clear();
                     break;
                 case GameState.Paused:
-                    _pauseScreen.Update(); // Ensure pause menu responds to input
+                    _pauseScreen.Update();
                     break;
                 case GameState.GameOver:
-                    _gameOverScreen.Update(); // Ensure game over screen responds to input
+                    _gameOverScreen.Update();
                     break;
             }
         }
@@ -295,17 +286,15 @@ namespace SpaceDefence
 
             spriteBatch.Begin(transformMatrix: _camera.GetTransform());
 
-            // 1. Tile the stars texture across the entire level
-            for (int x = 0; x < LevelBounds.Width; x += backgroundTileSize)
+            for (int x = 0; x < _levelBounds.Width; x += _backgroundTileSize)
             {
-                for (int y = 0; y < LevelBounds.Height; y += backgroundTileSize)
+                for (int y = 0; y < _levelBounds.Height; y += _backgroundTileSize)
                 {
-                    spriteBatch.Draw(starsTexture, new Vector2(x, y), Color.White);
+                    spriteBatch.Draw(_starsTexture, new Vector2(x, y), Color.White);
                 }
             }
 
-            // 2. Draw the galaxy once at its position
-            spriteBatch.Draw(galaxyTexture, galaxyPosition, Color.White);
+            spriteBatch.Draw(_galaxyTexture, _galaxyPosition, Color.White);
 
             foreach (GameObject gameObject in _gameObjects)
             {
@@ -314,13 +303,13 @@ namespace SpaceDefence
 
             spriteBatch.End(); // End world draw
 
-            spriteBatch.Begin(); // HUD Layer (no camera transform)
+            spriteBatch.Begin(); // HUD Layer
 
-            // Cockpit area setup
+            // HUD setup
             int cockpitHeight = 100;
             Rectangle cockpitArea = new Rectangle(0, SpaceDefence.screenHeight - cockpitHeight, SpaceDefence.screenWidth, cockpitHeight);
 
-            // Dark background
+            // HUD background
             Texture2D pixel = new Texture2D(spriteBatch.GraphicsDevice, 1, 1);
             pixel.SetData(new[] { Color.White });
             spriteBatch.Draw(pixel, cockpitArea, Color.Black * 0.8f);
@@ -329,8 +318,9 @@ namespace SpaceDefence
             string cargoText = $"Cargo: {(Player.HasCargo ? "Yes" : "No")}";
             string scoreText = $"Score: {score}";
             string targetText = Player.HasCargo ? "Next: Drop-off" : "Next: Pickup";
+            string weaponText = Player.CurrentWeapon();
 
-            string[] hudTexts = { cargoText, scoreText, targetText };
+            string[] hudTexts = { cargoText, scoreText, targetText, weaponText };
             SpriteFont font = _content.Load<SpriteFont>("HUDFont");
 
             // Layout
@@ -351,22 +341,22 @@ namespace SpaceDefence
 
             spriteBatch.Begin();
 
-            if (currentState == GameState.Paused)
+            if (_currentState == GameState.Paused)
             {
                 _pauseScreen.Draw(spriteBatch);
             }
 
-            if (currentState == GameState.GameOver)
+            if (_currentState == GameState.GameOver)
             {
                 _gameOverScreen.Draw(spriteBatch);
             }
 
-            if (currentState == GameState.StartScreen)
+            if (_currentState == GameState.StartScreen)
             {
                 _startScreen.Draw(spriteBatch);
             }
 
-            spriteBatch.End(); // End UI draw
+            spriteBatch.End();
         }
 
 
@@ -399,12 +389,9 @@ namespace SpaceDefence
             if (!playerExplosionTriggered)
             {
                 playerExplosionTriggered = true;
-                Console.WriteLine("Player destroyed! Triggering explosion...");
 
-                // Stop player movement and input
                 Player.Kill();
 
-                // Create explosion at player's position
                 Vector2 playerPosition = Player.GetPosition().Center.ToVector2();
                 AddGameObject(
                     new SpriteAnimation(
@@ -420,19 +407,16 @@ namespace SpaceDefence
                     )
                 );
 
-                // Delay switching to the Game Over screen so explosion plays first
                 Task.Delay(1000).ContinueWith(t =>
                 {
                     SetGameState(GameState.GameOver);
-                    playerExplosionTriggered = false; // Reset flag for next game
+                    playerExplosionTriggered = false;
                 });
             }
         }
 
         public void Restart()
         {
-            Console.WriteLine("Restarting Game...");
-
             // Reset game state
             _gameObjects.Clear();
             _toBeAdded.Clear();
@@ -454,11 +438,8 @@ namespace SpaceDefence
             AddGameObject(new Alien(Player, 50f));
             AddGameObject(new Supply());
 
-            currentState = GameState.Playing;
+            _currentState = GameState.Playing;
         }
-
-
-
 
         /// <summary>
         /// Get a random location on the screen.

@@ -22,7 +22,6 @@ namespace SpaceDefence
             CurrentKeyboardState = Keyboard.GetState();
             CurrentMouseState = Mouse.GetState();
             LastMouseState = Mouse.GetState();
-
         }
         
         /// <summary>

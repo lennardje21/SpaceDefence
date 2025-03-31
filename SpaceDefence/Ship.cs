@@ -4,6 +4,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using SpaceDefence.weapons;
 
 namespace SpaceDefence
 {
@@ -12,22 +13,44 @@ namespace SpaceDefence
         private Texture2D ship_body;
         private Texture2D base_turret;
         private Texture2D laser_turret;
+        private Texture2D shotgun_turret;
+
         private float buffTimer = 10;
         private float buffDuration = 10f;
         private RectangleCollider _collider; // collider for ship
         private Point target;
 
-        private Vector2 velocity = Vector2.Zero; // Current movement velocity
-        private Vector2 acceleration = Vector2.Zero; // Movement acceleration
-        private float speed = 10f; // Base acceleration speed
-        private float friction = 0.97f; // Simulated space friction to gradually slow down movement
-        private float rotationAngle = 0f; // Stores the ship's rotation angle
-        private int screenWidth = GameManager._gameFieldWidth; // Adjust as needed
-        private int screenHeight = GameManager._gameFieldHeight; // Adjust as needed
+        // weapons
+        private Weapon currentWeapon;
+        private Weapon bulletWeapon;
+        private Weapon laserWeapon;
+        private Weapon shotgunWeapon;
+
+        private Vector2 velocity = Vector2.Zero;
+        private Vector2 acceleration = Vector2.Zero;
+        private float speed = 20f;
+        private float friction = 0.97f;
+        private float rotationAngle = 0f; // keep track of ship angle
+        private int screenWidth = GameManager._gameFieldWidth;
+        private int screenHeight = GameManager._gameFieldHeight;
+
+        private GameManager gm = GameManager.GetGameManager();
 
         private bool hasCargo = false;
         public bool HasCargo => hasCargo;
 
+        public string CurrentWeapon()
+        {
+            if (currentWeapon == bulletWeapon)
+            {
+                return "Bullet";
+            }
+            else if (currentWeapon == laserWeapon)
+            {
+                return "Laser";
+            }
+            return "Shotgun";
+        }
 
         /// <summary>
         /// The player character
@@ -35,16 +58,28 @@ namespace SpaceDefence
         /// <param name="Position">The ship's starting position</param>
         public Ship(Point Position)
         {
-            _collider = new RectangleCollider(Position.ToVector2(), 50f, 120f); // Adjust size as needed
+            _collider = new RectangleCollider(Position.ToVector2(), 50f, 120f);
             SetCollider(_collider);
-            GameManager.GetGameManager().SetPlayer(this); // Set the player reference
+            gm.SetPlayer(this);
         }
 
         public override void Load(ContentManager content)
         {
             ship_body = content.Load<Texture2D>("ship_body");
+            bulletWeapon = new BulletWeapon();
+            laserWeapon = new LaserWeapon();
+            shotgunWeapon = new ShotgunWeapon();
+
+            bulletWeapon.Load(content);
+            laserWeapon.Load(content);
+            shotgunWeapon.Load(content);
+
+            currentWeapon = bulletWeapon; // start with bullet
+
             base_turret = content.Load<Texture2D>("base_turret");
             laser_turret = content.Load<Texture2D>("laser_turret");
+            shotgun_turret = content.Load<Texture2D>("shotgun_turret");
+
             base.Load(content);
         }
 
@@ -52,58 +87,52 @@ namespace SpaceDefence
         {
             base.HandleInput(inputManager);
 
-            // Convert screen mouse position to world position
             Vector2 screenMouse = inputManager.CurrentMouseState.Position.ToVector2();
-            target = GameManager.GetGameManager().GetCamera().ScreenToWorld(screenMouse).ToPoint();
+            target = gm.GetCamera().ScreenToWorld(screenMouse).ToPoint();
 
-            // Reset acceleration each frame
             acceleration = Vector2.Zero;
             if (inputManager.IsKeyDown(Keys.W)) acceleration += new Vector2(0, -1);
             if (inputManager.IsKeyDown(Keys.S)) acceleration += new Vector2(0, 1);
             if (inputManager.IsKeyDown(Keys.A)) acceleration += new Vector2(-1, 0);
             if (inputManager.IsKeyDown(Keys.D)) acceleration += new Vector2(1, 0);
 
-            // Normalize acceleration to ensure equal speed in all directions
             if (acceleration.LengthSquared() > 0)
             {
                 acceleration = Vector2.Normalize(acceleration) * speed;
             }
 
-            // --- Shooting Mechanic ---
+            if (inputManager.IsKeyPress(Keys.D1))
+                currentWeapon = bulletWeapon;
+            else if (inputManager.IsKeyPress(Keys.D2))
+                currentWeapon = laserWeapon;
+
             if (inputManager.LeftMousePress())
             {
                 Vector2 aimDirection = LinePieceCollider.GetDirection(GetPosition().Center, target);
                 Vector2 turretExit = _collider.Center + aimDirection * base_turret.Height / 2f;
 
-                if (buffTimer <= 0)
-                {
-                    GameManager.GetGameManager().AddGameObject(new Bullet(turretExit, aimDirection, 150));
-                }
-                else
-                {
-                    GameManager.GetGameManager().AddGameObject(new Laser(new LinePieceCollider(turretExit, target.ToVector2()), SpaceDefence.screenWidth));
-                }
+                currentWeapon.Fire(turretExit, aimDirection);
             }
+
         }
 
 
-        private bool isDead = false; // **Track if the player is dead**
+        private bool isDead = false;
 
         public void Kill()
         {
-            if (!isDead) // Prevent multiple deaths
+            if (!isDead)
             {
                 isDead = true;
-                velocity = Vector2.Zero; // **Stop movement**
+                velocity = Vector2.Zero;
                 acceleration = Vector2.Zero;
-                Console.WriteLine("Player has been destroyed. Disabling input and movement.");
             }
         }
         public bool IsDead() { return isDead; }
 
         public override void Update(GameTime gameTime)
         {
-            if (isDead) return; // **Prevent movement & input if dead**
+            if (isDead) return;
 
             float deltaTime = (float)gameTime.ElapsedGameTime.TotalSeconds;
 
@@ -127,6 +156,16 @@ namespace SpaceDefence
             _collider.Center += velocity;
             _collider.Rotation = rotationAngle;
 
+            if (buffTimer > 0)
+{
+                buffTimer -= deltaTime;
+                if (buffTimer <= 0)
+                {
+                    currentWeapon = bulletWeapon; // revert to default
+                }
+            }
+
+
             // Handle screen wrapping
             WrapScreen();
 
@@ -147,7 +186,6 @@ namespace SpaceDefence
 
         public override void Draw(GameTime gameTime, SpriteBatch spriteBatch)
         {
-            // Draw ship with rotation applied
             spriteBatch.Draw(
                 ship_body,
                 _collider.Center,
@@ -160,19 +198,19 @@ namespace SpaceDefence
                 0
             );
 
-            // Aim turret based on mouse position
+            // Aim turret at mouse cursor
             float aimAngle = LinePieceCollider.GetAngle(LinePieceCollider.GetDirection(GetPosition().Center, target));
 
-            if (buffTimer <= 0)
-            {
-                spriteBatch.Draw(base_turret, _collider.Center, null, Color.White, aimAngle,
-                    new Vector2(base_turret.Width / 2f, base_turret.Height / 2f), 1f, SpriteEffects.None, 0);
-            }
-            else
-            {
-                spriteBatch.Draw(laser_turret, _collider.Center, null, Color.White, aimAngle,
-                    new Vector2(laser_turret.Width / 2f, laser_turret.Height / 2f), 1f, SpriteEffects.None, 0);
-            }
+            Texture2D currentTurretTexture = base_turret;
+
+            if (currentWeapon == laserWeapon)
+                currentTurretTexture = laser_turret;
+            else if (currentWeapon == shotgunWeapon && shotgun_turret != null)
+                currentTurretTexture = shotgun_turret;
+
+            spriteBatch.Draw(currentTurretTexture, _collider.Center, null, Color.White, aimAngle,
+                new Vector2(currentTurretTexture.Width / 2f, currentTurretTexture.Height / 2f), 1f, SpriteEffects.None, 0);
+
 
             // Draw debug collider border
             //DrawRotatableCollider(spriteBatch, _collider);
@@ -185,7 +223,6 @@ namespace SpaceDefence
             if (!hasCargo)
             {
                 hasCargo = true;
-                Console.WriteLine("Cargo picked up!");
             }
         }
 
@@ -194,7 +231,6 @@ namespace SpaceDefence
             if (hasCargo)
             {
                 hasCargo = false;
-                Console.WriteLine("Cargo delivered!");
                 return true; // Successful delivery
             }
             return false;
@@ -224,6 +260,7 @@ namespace SpaceDefence
         public void Buff()
         {
             buffTimer = buffDuration;
+            currentWeapon = shotgunWeapon;
         }
 
         public Rectangle GetPosition()

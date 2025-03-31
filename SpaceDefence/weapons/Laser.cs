@@ -2,7 +2,7 @@
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 
-namespace SpaceDefence
+namespace SpaceDefence.weapons
 {
     internal class Laser : GameObject
     {

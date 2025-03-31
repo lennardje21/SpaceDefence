@@ -6,6 +6,7 @@ namespace SpaceDefence.Collision
 {
     public class RectangleCollider : Collider, IEquatable<RectangleCollider>
     {
+        // The logic for checking the rotation is made with the help of chatGPT
         public Rectangle shape;
         public float Rotation { get; set; } = 0f; // Rotation in radians
         public Vector2 Center
@@ -65,8 +66,6 @@ namespace SpaceDefence.Collision
             return other.Intersects(this);
         }
 
-        // ✅ New Helper Functions for Rotation Handling
-
         /// <summary>
         /// Returns the four corners of the rotated rectangle.
         /// </summary>
@@ -75,13 +74,13 @@ namespace SpaceDefence.Collision
             Vector2 center = shape.Center.ToVector2();
             Vector2 halfSize = new Vector2(shape.Width / 2f, shape.Height / 2f);
 
-            Vector2[] corners = new Vector2[]
-            {
+            Vector2[] corners =
+            [
                 center + RotatePoint(-halfSize, Rotation, Vector2.Zero),
                 center + RotatePoint(new Vector2(halfSize.X, -halfSize.Y), Rotation, Vector2.Zero),
                 center + RotatePoint(halfSize, Rotation, Vector2.Zero),
                 center + RotatePoint(new Vector2(-halfSize.X, halfSize.Y), Rotation, Vector2.Zero)
-            };
+            ];
 
             return corners;
         }
@@ -89,7 +88,7 @@ namespace SpaceDefence.Collision
         /// <summary>
         /// Rotates a point around a given origin.
         /// </summary>
-        private Vector2 RotatePoint(Vector2 point, float angle, Vector2 origin)
+        private static Vector2 RotatePoint(Vector2 point, float angle, Vector2 origin)
         {
             float cos = (float)Math.Cos(angle);
             float sin = (float)Math.Sin(angle);
@@ -110,13 +109,11 @@ namespace SpaceDefence.Collision
             float clampedX = Math.Clamp(localPoint.X, shape.Left, shape.Right);
             float clampedY = Math.Clamp(localPoint.Y, shape.Top, shape.Bottom);
 
-            Vector2 clamped = new Vector2(clampedX, clampedY);
+            Vector2 clamped = new(clampedX, clampedY);
             return RotatePoint(clamped, Rotation, center);
         }
 
-        /// <summary>
-        /// Draws the collider for debugging purposes.
-        /// </summary>
+        // sued to see if the borders are correct
         public void Draw(SpriteBatch spriteBatch, Texture2D texture)
         {
             Vector2[] corners = GetRotatedCorners();

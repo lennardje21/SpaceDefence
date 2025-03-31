@@ -28,7 +28,7 @@ namespace SpaceDefence
             _rectangleCollider = new RectangleCollider(center, width, height);
             SetCollider(_rectangleCollider);
 
-            RandomMove(); // optional movement or repositioning
+            RandomMove();
         }
 
 

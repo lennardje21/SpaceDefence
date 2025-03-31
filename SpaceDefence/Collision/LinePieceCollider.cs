@@ -76,10 +76,7 @@ namespace SpaceDefence
         /// <returns> The angle in radians between the the up vector and the direction to the cursor.</returns>
         public static float GetAngle(Vector2 direction)
         {
-            // Normalize the direction vector
             direction = Vector2.Normalize(direction);
-
-            // Calculate the angle between the direction and the up vector (0, -1)
             return (float)Math.Atan2(direction.X, -direction.Y);
         }
 
@@ -90,10 +87,7 @@ namespace SpaceDefence
         /// <returns> A Vector2 containing the direction from point1 to point2. </returns>
         public static Vector2 GetDirection(Vector2 point1, Vector2 point2)
         {
-            // Calculate the vector difference
             Vector2 direction = point2 - point1;
-
-            // Normalize it to get a unit direction vector
             return Vector2.Normalize(direction);
         }
 
@@ -117,16 +111,11 @@ namespace SpaceDefence
         /// <returns>true there is any overlap between the two Circles.</returns>
         public override bool Intersects(CircleCollider other)
         {
-            // Compute the closest point on the infinite line
             Vector2 closestPoint = NearestPointOnLine(other.Center);
-
-            // Check if the closest point lies on the actual line segment
             if (!IsPointOnSegment(closestPoint, this.Start, this.End))
             {
-                return false; // The intersection occurs outside the line segment
+                return false;
             }
-
-            // Check if the closest point is within the circle's radius
             float distanceSquared = (other.Center - closestPoint).LengthSquared();
             return distanceSquared < (other.Radius * other.Radius);
         }
@@ -137,6 +126,8 @@ namespace SpaceDefence
         /// </summary>
         /// <param name="other">The Rectangle to check for intersection.</param>
         /// <returns>true there is any overlap between the Circle and the Rectangle.</returns>
+        /// Gemaakt met behulp van chatGPT
+
         public override bool Intersects(RectangleCollider other)
         {
             Vector2 topLeft = other.shape.Location.ToVector2();
@@ -164,6 +155,7 @@ namespace SpaceDefence
         /// </summary>
         /// <param name="Other">The line to intersect with</param>
         /// <returns>A Vector2 with the point of intersection.</returns>
+        /// Gemaakt met behulp van chatGPT
         public Vector2 GetIntersection(LinePieceCollider Other)
         {
             float A1 = this.StandardA;
@@ -210,6 +202,7 @@ namespace SpaceDefence
         /// </summary>
         /// <param name="other">The Vector you want to find the nearest point to.</param>
         /// <returns>The nearest point on the line.</returns>
+        /// Gemaakt met behulp van chatGPT
         public Vector2 NearestPointOnLine(Vector2 point)
         {
             Vector2 lineDirection = End - Start;
@@ -231,6 +224,7 @@ namespace SpaceDefence
         /// As an unbound line has infinite length, the returned bounding box assumes the line to be bound.
         /// </summary>
         /// <returns></returns>
+        /// Gemaakt met behulp van chatGPT
         public override Rectangle GetBoundingBox()
         {
             Point topLeft = new Point((int)Math.Min(Start.X, End.X), (int)Math.Min(Start.Y, End.Y));

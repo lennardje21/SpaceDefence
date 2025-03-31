@@ -3,7 +3,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 
-namespace SpaceDefence
+namespace SpaceDefence.weapons
 {
     internal class Bullet : GameObject
     {
@@ -29,7 +29,7 @@ namespace SpaceDefence
         {
             base.Update(gameTime);
             _circleCollider.Center += _velocity * (float)gameTime.ElapsedGameTime.TotalSeconds;
-            if (!GameManager.LevelBounds.Contains(_circleCollider.Center.ToPoint()))
+            if (!GameManager._levelBounds.Contains(_circleCollider.Center.ToPoint()))
                 GameManager.GetGameManager().RemoveGameObject(this);
         }
 
@@ -38,6 +38,9 @@ namespace SpaceDefence
             if (other is Alien || other is Supply)
             {
                 GameManager.GetGameManager().RemoveGameObject(this);
+            }
+            if (other is Alien)
+            {
                 GameManager.GetGameManager().increaseScore(10);
             }
         }

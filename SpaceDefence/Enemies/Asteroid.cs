@@ -12,8 +12,8 @@ namespace SpaceDefence
         private CircleCollider _collider;
         private Vector2 _position;
         private float scale = 2.5f;
-        private const float visibleScale = 0.35f; // Portion of the texture that actually represents the visible rock
-        private bool drawDebug = false; // Toggle hitbox visibility
+        private const float visibleScale = 0.35f;
+        private bool drawDebug = false; // Toggle hitbox visibility to decide correctnes
 
         public Asteroid(Vector2 position, float scale = 2.5f)
         {
@@ -23,7 +23,7 @@ namespace SpaceDefence
 
         public override void Load(ContentManager content)
         {
-            _texture = content.Load<Texture2D>("Asteroid"); // Ensure this texture exists in Content
+            _texture = content.Load<Texture2D>("Asteroid");
 
             float radius = (_texture.Width / 2f) * visibleScale * scale;
             _collider = new CircleCollider(_position, radius);
@@ -32,7 +32,7 @@ namespace SpaceDefence
 
         public override void Update(GameTime gameTime)
         {
-            // Asteroids do not move
+            // Asteroids are stationary
         }
 
         public override void OnCollision(GameObject other)
@@ -66,7 +66,6 @@ namespace SpaceDefence
                 DrawCircle(spriteBatch, _collider.Center, _collider.Radius, 32, Color.Red);
         }
 
-        // Draw a circle outline for collider debugging
         private void DrawCircle(SpriteBatch spriteBatch, Vector2 center, float radius, int segments, Color color)
         {
             Texture2D pixel = new Texture2D(spriteBatch.GraphicsDevice, 1, 1);

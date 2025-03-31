@@ -3,7 +3,7 @@ using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 
-namespace SpaceDefence
+namespace SpaceDefence.Screens
 {
     public class GameOverScreen
     {
@@ -39,19 +39,25 @@ namespace SpaceDefence
         public void Draw(SpriteBatch spriteBatch)
         {
             string gameOverText = "Game Over!\nPress R to Restart\nPress ESC to Quit";
-            Vector2 textSize = font.MeasureString(gameOverText);
-            Vector2 textPosition = new Vector2(
-                (graphicsDevice.Viewport.Width - textSize.X) / 2,
-                (graphicsDevice.Viewport.Height - textSize.Y) / 2
-            );
+            string[] lines = gameOverText.Split('\n');
 
-            spriteBatch.DrawString(font, gameOverText, textPosition, Color.Red);
-        }
+            float lineHeight = font.LineSpacing;
+            float totalHeight = lineHeight * lines.Length;
 
+            float startY = (graphicsDevice.Viewport.Height - totalHeight) / 2;
 
-        private void RestartGame()
-        {
-            gameManager.Restart();
+            for (int i = 0; i < lines.Length; i++)
+            {
+                string line = lines[i];
+                Vector2 lineSize = font.MeasureString(line);
+
+                Vector2 position = new Vector2(
+                    (graphicsDevice.Viewport.Width - lineSize.X) / 2, // center horizontally
+                    startY + i * lineHeight // stack vertically
+                );
+
+                spriteBatch.DrawString(font, line, position, Color.Red);
+            }
         }
     }
 }

@@ -3,7 +3,7 @@ using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 
-namespace SpaceDefence
+namespace SpaceDefence.Screens
 {
     public class PauseScreen
     {
@@ -17,9 +17,8 @@ namespace SpaceDefence
             this.graphicsDevice = graphicsDevice;
             gameManager = GameManager.GetGameManager();
 
-            // Create a semi-transparent black texture
             overlay = new Texture2D(graphicsDevice, 1, 1);
-            overlay.SetData(new[] { new Color(0, 0, 0, 150) }); // 150 Alpha for transparency
+            overlay.SetData(new[] { new Color(0, 0, 0, 150) }); // 150 for transparency
         }
 
         public void Load(ContentManager content)
@@ -41,18 +40,28 @@ namespace SpaceDefence
 
         public void Draw(SpriteBatch spriteBatch)
         {
-            // Draw the semi-transparent overlay
             spriteBatch.Draw(overlay, new Rectangle(0, 0, graphicsDevice.Viewport.Width, graphicsDevice.Viewport.Height), Color.White);
 
-            // Draw pause text
-            string message = "Paused\nPress P to Continue\nPress ESC to Quit";
-            Vector2 textSize = font.MeasureString(message);
-            Vector2 textPosition = new Vector2(
-                (graphicsDevice.Viewport.Width - textSize.X) / 2,
-                (graphicsDevice.Viewport.Height - textSize.Y) / 2
-            );
+            string pauseText = "Paused\nPress P to Continue\nPress ESC to Quit";
+            string[] lines = pauseText.Split('\n');
 
-            spriteBatch.DrawString(font, message, textPosition, Color.Yellow);
+            float lineHeight = font.LineSpacing;
+            float totalHeight = lineHeight * lines.Length;
+
+            float startY = (graphicsDevice.Viewport.Height - totalHeight) / 2;
+
+            for (int i = 0; i < lines.Length; i++)
+            {
+                string line = lines[i];
+                Vector2 lineSize = font.MeasureString(line);
+
+                Vector2 position = new Vector2(
+                    (graphicsDevice.Viewport.Width - lineSize.X) / 2, // center horizontally
+                    startY + i * lineHeight // stack vertically
+                );
+
+                spriteBatch.DrawString(font, line, position, Color.Yellow);
+            }
         }
     }
 

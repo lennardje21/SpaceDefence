@@ -1,7 +1,7 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
-namespace SpaceDefence
+namespace SpaceDefence.Engine
 {
     public class Camera
     {
@@ -23,8 +23,8 @@ namespace SpaceDefence
             position = target;
 
             // Clamp camera position to level bounds (optional)
-            position.X = MathHelper.Clamp(position.X, viewport.Width / 2, GameManager.LevelBounds.Width - viewport.Width / 2);
-            position.Y = MathHelper.Clamp(position.Y, viewport.Height / 2, GameManager.LevelBounds.Height - viewport.Height / 2);
+            position.X = MathHelper.Clamp(position.X, viewport.Width / 2, GameManager._levelBounds.Width - viewport.Width / 2);
+            position.Y = MathHelper.Clamp(position.Y, viewport.Height / 2, GameManager._levelBounds.Height - viewport.Height / 2);
         }
 
 

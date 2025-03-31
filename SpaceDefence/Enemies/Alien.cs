@@ -3,19 +3,20 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework;
 using SpaceDefence;
 using System;
+using SpaceDefence.weapons;
 
 internal class Alien : GameObject
 {
     private CircleCollider _circleCollider;
     private Texture2D _texture;
-    private float playerClearance = 50; // Distance at which the game is over
-    private float speed; // Speed of the alien
+    private float _playerClearance = 50;
+    private float _speed;
     private Ship player;
 
     public Alien(Ship player, float speed)
     {
         this.player = player;
-        this.speed = speed;
+        this._speed = speed;
     }
 
     public override void Load(ContentManager content)
@@ -31,8 +32,6 @@ internal class Alien : GameObject
     {
         if (other is Bullet || other is Laser || other is Asteroid)
         {
-            Console.WriteLine("Alien hit! Triggering explosion...");
-
             // Get alien's position for explosion
             Vector2 explosionPosition = _circleCollider.Center;
 
@@ -40,7 +39,7 @@ internal class Alien : GameObject
             GameManager.GetGameManager().AddGameObject(
                 new SpriteAnimation(
                     explosionPosition,
-                    "Explosion",         // name of the texture in Content
+                    "Explosion",
                     frameWidth: 64,
                     frameHeight: 64,
                     frameCount: 35,
@@ -52,13 +51,12 @@ internal class Alien : GameObject
             );
 
             // Remove alien and spawn a faster one
-            float newSpeed = speed + 10f;
+            float newSpeed = _speed + 10f;
             GameManager.GetGameManager().RemoveGameObject(this);
             GameManager.GetGameManager().AddGameObject(new Alien(GameManager.GetGameManager().Player, newSpeed));
 
         } else if (other is Ship)
         {
-            Console.WriteLine("Alien hit the player! Game Over."); // Debugging output
             GameManager.GetGameManager().GameOver();
         }
         base.OnCollision(other);
@@ -71,7 +69,7 @@ internal class Alien : GameObject
         _circleCollider.Center = gm.RandomScreenLocation();
 
         Vector2 centerOfPlayer = player.GetPosition().Center.ToVector2();
-        while ((_circleCollider.Center - centerOfPlayer).Length() < playerClearance)
+        while ((_circleCollider.Center - centerOfPlayer).Length() < _playerClearance)
             _circleCollider.Center = gm.RandomScreenLocation();
     }
 
@@ -81,9 +79,9 @@ internal class Alien : GameObject
 
         // Chase the player
         Vector2 direction = Vector2.Normalize(player.GetPosition().Center.ToVector2() - _circleCollider.Center);
-        _circleCollider.Center += direction * speed * (float)gameTime.ElapsedGameTime.TotalSeconds;
+        _circleCollider.Center += direction * _speed * (float)gameTime.ElapsedGameTime.TotalSeconds;
 
-        if ((_circleCollider.Center - player.GetPosition().Center.ToVector2()).Length() < playerClearance)
+        if ((_circleCollider.Center - player.GetPosition().Center.ToVector2()).Length() < _playerClearance)
         {
             GameManager.GetGameManager().GameOver();
         }

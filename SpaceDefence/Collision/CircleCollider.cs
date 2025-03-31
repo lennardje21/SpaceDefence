@@ -92,19 +92,8 @@ namespace SpaceDefence
         /// <returns>true there is any overlap between the Circle and the Line.</returns>
         public override bool Intersects(LinePieceCollider other)
         {
-            Vector2 startToCenter = this.Center - other.Start;
-            Vector2 lineDirection = Vector2.Normalize(other.End - other.Start);
-            float projectionLength = Vector2.Dot(startToCenter, lineDirection);
-
-            Vector2 closestPoint;
-            if (projectionLength < 0)
-                closestPoint = other.Start;  // Closest to start of the laser
-            else if (projectionLength > other.Length)
-                closestPoint = other.End;  // Closest to end of the laser
-            else
-                closestPoint = other.Start + lineDirection * projectionLength;
-
-            return (this.Center - closestPoint).LengthSquared() < (this.Radius * this.Radius);
+            // Implemented in the line code.
+            return other.Intersects(this);
         }
 
 
