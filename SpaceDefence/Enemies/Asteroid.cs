@@ -11,11 +11,11 @@ namespace SpaceDefence
         private Texture2D _texture;
         private CircleCollider _collider;
         private Vector2 _position;
-        private float scale = 2f;
+        private float scale = 2.5f;
         private const float visibleScale = 0.35f; // Portion of the texture that actually represents the visible rock
-        private bool drawDebug = true; // Toggle hitbox visibility
+        private bool drawDebug = false; // Toggle hitbox visibility
 
-        public Asteroid(Vector2 position, float scale = 2f)
+        public Asteroid(Vector2 position, float scale = 2.5f)
         {
             this._position = position;
             this.scale = scale;
@@ -43,8 +43,6 @@ namespace SpaceDefence
 
                 if (other is Ship)
                     GameManager.GetGameManager().GameOver();
-
-                GameManager.GetGameManager().AddGameObject(new Explosion(_collider.Center, 2.0f));
             }
         }
 

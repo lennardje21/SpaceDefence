@@ -21,6 +21,14 @@ namespace SpaceDefence
             this.linePiece.Length = length;
         }
 
+        public override void OnCollision(GameObject other)
+        {
+            if (other is Alien)
+            {
+                GameManager.GetGameManager().increaseScore(10);
+            }
+        }
+
         public override void Load(ContentManager content)
         {
             base.Load(content);

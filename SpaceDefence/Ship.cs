@@ -14,16 +14,20 @@ namespace SpaceDefence
         private Texture2D laser_turret;
         private float buffTimer = 10;
         private float buffDuration = 10f;
-        private RectangleCollider _collider; // Rotatable collider for ship
+        private RectangleCollider _collider; // collider for ship
         private Point target;
 
         private Vector2 velocity = Vector2.Zero; // Current movement velocity
         private Vector2 acceleration = Vector2.Zero; // Movement acceleration
         private float speed = 10f; // Base acceleration speed
-        private float friction = 0.98f; // Simulated space friction to gradually slow down movement
+        private float friction = 0.97f; // Simulated space friction to gradually slow down movement
         private float rotationAngle = 0f; // Stores the ship's rotation angle
         private int screenWidth = GameManager._gameFieldWidth; // Adjust as needed
         private int screenHeight = GameManager._gameFieldHeight; // Adjust as needed
+
+        private bool hasCargo = false;
+        public bool HasCargo => hasCargo;
+
 
         /// <summary>
         /// The player character
@@ -171,10 +175,31 @@ namespace SpaceDefence
             }
 
             // Draw debug collider border
-            DrawRotatableCollider(spriteBatch, _collider);
+            //DrawRotatableCollider(spriteBatch, _collider);
 
             base.Draw(gameTime, spriteBatch);
         }
+
+        public void PickUpCargo()
+        {
+            if (!hasCargo)
+            {
+                hasCargo = true;
+                Console.WriteLine("Cargo picked up!");
+            }
+        }
+
+        public bool DropOffCargo()
+        {
+            if (hasCargo)
+            {
+                hasCargo = false;
+                Console.WriteLine("Cargo delivered!");
+                return true; // Successful delivery
+            }
+            return false;
+        }
+
 
         private void DrawRotatableCollider(SpriteBatch spriteBatch, RectangleCollider collider)
         {

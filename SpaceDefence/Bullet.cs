@@ -38,6 +38,7 @@ namespace SpaceDefence
             if (other is Alien || other is Supply)
             {
                 GameManager.GetGameManager().RemoveGameObject(this);
+                GameManager.GetGameManager().increaseScore(10);
             }
         }
 

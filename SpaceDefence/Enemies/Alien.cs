@@ -29,7 +29,7 @@ internal class Alien : GameObject
 
     public override void OnCollision(GameObject other)
     {
-        if (other is Bullet || other is Laser)
+        if (other is Bullet || other is Laser || other is Asteroid)
         {
             Console.WriteLine("Alien hit! Triggering explosion...");
 
@@ -37,7 +37,19 @@ internal class Alien : GameObject
             Vector2 explosionPosition = _circleCollider.Center;
 
             // Add explosion effect
-            GameManager.GetGameManager().AddGameObject(new Explosion(explosionPosition, 2f)); // Slightly smaller than player's explosion
+            GameManager.GetGameManager().AddGameObject(
+                new SpriteAnimation(
+                    explosionPosition,
+                    "Explosion",         // name of the texture in Content
+                    frameWidth: 64,
+                    frameHeight: 64,
+                    frameCount: 35,
+                    frameTime: 0.05f,
+                    loop: false,
+                    scale: 2f,
+                    autoDestroy: true
+                )
+            );
 
             // Remove alien and spawn a faster one
             float newSpeed = speed + 10f;
